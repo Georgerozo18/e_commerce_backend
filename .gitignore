@@ -1,0 +1,41 @@
+# Node.js modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+
+# Build artifacts
+dist/
+build/
+
+# Optional npm cache directory
+.npm/
+
+# Debugging/IDE files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# MacOS system files
+.DS_Store
+
+# Coverage directory used by testing tools like jest or c8
+coverage/
+
+# Multer uploads directory
+uploads/
+
+# Package lock files (optional)
+package-lock.json
+yarn.lock
+
+# Temporary files
+tmp/
+temp/
