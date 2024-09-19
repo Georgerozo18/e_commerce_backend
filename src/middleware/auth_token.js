@@ -1,3 +1,4 @@
+// middleware de actualizar el token [pendiente]
 const jwt = require('jsonwebtoken')
 
 const authenticate_token = (request, response, next)=>{
@@ -7,7 +8,7 @@ const authenticate_token = (request, response, next)=>{
     if(token===null) return response.sendStatus(401)
 
     jwt.verify(token, process.env.JWT_SECRET, (error, user)=>{
-        if(error) return response.sendStatus(403)
+        if(error) return response.sendStatus(401).json({message:'Invalid token'})
         request.user = user
         next()
     })

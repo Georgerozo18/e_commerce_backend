@@ -15,12 +15,14 @@ const seed_users = async () => {
                 password: hashAdmin,
                 fullname: 'Administrador',
                 status: true,
+                role:'admin'
             },
             {
                 username: 'std',
                 password: hashStandard,
                 fullname: 'Usuario estándar',
                 status: true,
+                role:'user'
             },
         ]
 

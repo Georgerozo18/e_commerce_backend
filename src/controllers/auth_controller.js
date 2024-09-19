@@ -10,7 +10,7 @@ const login_controller = async (request, response) => {
             return response.status(400).json({ message: 'Username and password are required' })
         }
 
-        const user = await User.findOne({ username, status: true })
+        const user = await User.findOne({ username, status: true, role:'user' })
 
         if (!user) {
             return response.status(400).json({ message: 'Incorrect username or password' })
@@ -25,7 +25,7 @@ const login_controller = async (request, response) => {
             id: user._id,
             username: user.username,
             fullname: user.fullname,
-            role: user.status ? 'admin' : 'user'
+            role: user.role
         }, process.env.JWT_SECRET, {
             expiresIn: '1h'
         })
@@ -56,7 +56,12 @@ const signup_controller = async (request, response) => {
         }
 
         const hash = await bcrypt.hash(password, 10)
-        const new_user = new User({ username, password: hash, fullname })
+        const new_user = new User({ 
+            username, 
+            password: hash, 
+            fullname, 
+            role:'user'
+        })
 
         await new_user.save()
         response.status(200).json({ message: 'User created successfully' })

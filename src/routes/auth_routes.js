@@ -4,6 +4,6 @@ const {login_controller, signup_controller} = require('../controllers/auth_contr
 const router = express.Router()
 
 router.post('/login', login_controller)
-router.post('/sign-up', signup_controller)
+router.post('/sign_up', signup_controller)
 
 module.exports = router
