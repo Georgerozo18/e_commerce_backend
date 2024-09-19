@@ -20,21 +20,40 @@ const login_controller = async (request, response) => {
         if (!isMatch) {
             return response.status(400).json({ message: 'Incorrect username or password' })
         }
-
-        const token = jwt.sign({
+        
+        // Generar el access token y el refresh token
+        const access_token  = jwt.sign({
             id: user._id,
             username: user.username,
             fullname: user.fullname,
             role: user.role
         }, process.env.JWT_SECRET, {
-            expiresIn: '1h'
+            expiresIn: '1m'
         })
 
-        response.cookie('accessToken', token, {
+        const refresh_token = jwt.sign({
+            id: user._id,
+            username: user.username,
+            fullname: user.fullname,
+            role: user.role
+        }, process.env.JWT_SECRET, {
+            expiresIn: '2m'
+        })
+
+        // Establecer las cookies
+        response.cookie('accessToken', access_token, {
             httpOnly: true,
             sameSite: 'strict',
             secure: process.env.NODE_ENV === 'production'
-        }).json({ message: 'Successful login' })
+        })
+
+        response.cookie('refreshToken', refresh_token, {
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: process.env.NODE_ENV === 'production'
+        })
+        
+        response.status(200).json({ message: 'Successful login' })
 
     } catch (error) {
         console.error(error)

@@ -1,17 +1,41 @@
-// middleware de actualizar el token [pendiente]
 const jwt = require('jsonwebtoken')
+const refresh_token_controller = require('./refresh_token')
 
-const authenticate_token = (request, response, next)=>{
-    const auth_header = request.headers['authorization']
-    const token = auth_header && auth_header.split(' ')[1]
-    
-    if(token===null) return response.sendStatus(401)
+const authenticate_token = async(request, response, next)=>{
+    // Obtener el token desde las cookies
+    const token = request.cookies['accessToken']
 
-    jwt.verify(token, process.env.JWT_SECRET, (error, user)=>{
-        if(error) return response.sendStatus(401).json({message:'Invalid token'})
+     // Verificar si el token existe
+    if(!token){
+        return response.status(401).json({
+            message:'Access token missing or invalid'
+        })
+    } 
+
+    try {
+        // Verificar el token con jwt
+        const user = await jwt.verify(token, process.env.JWT_SECRET)
         request.user = user
         next()
-    })
+
+    } catch(error){
+        if(error.name === 'TokenExpiredError'){
+            try{
+                // Intentar renovar el token
+                const new_access_token = await refresh_token_controller(request, response)
+
+                // Verificar el nuevo access token
+                const user = await jwt.verify(new_access_token, process.env.JWT_SECRET)
+                request.user = user
+                next()
+                
+            } catch(refresh_error){
+                return response.status(refresh_error.status || 500).json({ message: refresh_error.message })
+            }
+        } else {
+            return response.status(401).json({ message: 'Invalid token' })
+        }
+    }
 }
 
 module.exports = authenticate_token
