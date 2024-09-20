@@ -28,7 +28,7 @@ const login_controller = async (request, response) => {
             fullname: user.fullname,
             role: user.role
         }, process.env.JWT_SECRET, {
-            expiresIn: '1m'
+            expiresIn: '15m'
         })
 
         const refresh_token = jwt.sign({
@@ -37,7 +37,7 @@ const login_controller = async (request, response) => {
             fullname: user.fullname,
             role: user.role
         }, process.env.JWT_SECRET, {
-            expiresIn: '2m'
+            expiresIn: '1h'
         })
 
         // Establecer las cookies

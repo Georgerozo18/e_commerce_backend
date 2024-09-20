@@ -30,7 +30,7 @@ const refresh_token_controller = (request, response)=>{
                 username: user.username,
                 fullname: user.fullname,
                 role: user.role
-            }, process.env.JWT_SECRET, { expiresIn: '2m' })
+            }, process.env.JWT_SECRET, { expiresIn: '1h' })
 
             // Generar un nuevo accessToken
             const new_access_token = jwt.sign({
@@ -38,7 +38,7 @@ const refresh_token_controller = (request, response)=>{
                 username: user.username,
                 fullname: user.fullname,
                 role: user.role
-            }, process.env.JWT_SECRET, { expiresIn: '1m' })
+            }, process.env.JWT_SECRET, { expiresIn: '15m' })
 
             // Establecer los nuevos tokens en las cookies
             response.cookie('accessToken', new_access_token, {

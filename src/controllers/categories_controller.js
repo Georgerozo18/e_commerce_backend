@@ -11,4 +11,51 @@ const get_category_by_id = async (request, response)=>{
     }
 }
 
-module.exports = { get_category_by_id };
+const get_all_categories = async (request, response)=>{
+    try{
+        const categories = await Category.find()
+
+        response.status(200).json(categories)
+    } catch(error){
+        response.status(500).json({message: 'Server error'})
+    }
+}
+
+const create_category = async (request, response)=>{
+    const { name, description } = request.body
+
+    // Validar que los campos requeridos estén presentes
+    if(!name || !description){
+        return response.status(400).json({
+            messsage: 'Name and description are required'
+        })
+    }
+    
+     // Verificar si el usuario es un administrador
+    if(request.user.role !== 'admin'){
+        return response.status(403).json({
+            message:'Forbidden: You do not have permission to create categories'
+        })
+    }
+
+    try{
+        const new_category = new Category({name, description})
+        await new_category.save()
+        response.status(201).json(new_category)
+    } catch(error){
+        if(error.code = 11000){
+            return response.status(400).json({
+                message:'Category name must be unique'
+            })
+        }
+        response.status(500).json({
+            message:'Server error'
+        })
+    }
+}
+
+module.exports = { 
+    get_category_by_id, 
+    get_all_categories,
+    create_category
+}
