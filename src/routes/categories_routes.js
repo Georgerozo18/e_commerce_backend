@@ -7,7 +7,7 @@ const {
     partial_update_category,
     full_update_category,
     delete_category
-} = require('../controllers/categories_controller')
+} = require('../controllers/category_controller')
 
 const router = express.Router()
 
