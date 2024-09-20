@@ -43,7 +43,7 @@ const create_category = async (request, response)=>{
         await new_category.save()
         response.status(201).json(new_category)
     } catch(error){
-        if(error.code = 11000){
+        if(error.code === 11000){
             return response.status(400).json({
                 message:'Category name must be unique'
             })
