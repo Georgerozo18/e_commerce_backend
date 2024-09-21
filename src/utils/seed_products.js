@@ -1,5 +1,8 @@
+const mongoose = require('mongoose')
 const Product = require('../models/product_model')
 const Category = require('../models/category_model')
+const Price = require('../models/price_model')
+const Stock = require('../models/stock_model')
 
 const seed_products  = async ()=>{
     try{
@@ -44,8 +47,42 @@ const seed_products  = async ()=>{
             return
         }
 
-        await Product.insertMany(products)
-        console.log('Products created successfully')
+        // Iniciar una sesión para manejar la transacción
+        const session = await mongoose.startSession()
+        session.startTransaction()
+        
+        try{
+            // Crear productos y guardar el resultado
+            const created_products = await Product.insertMany(products, {session})
+
+            // Para cada producto, crear su precio y stock
+            for(let i = 0; i < created_products.length; i++){
+                const product = created_products[i]
+
+                // Crear la entrada de precio para el producto
+                const new_price = new Price({
+                    product:product._id,
+                    price:products[i].price
+                })
+                await new_price.save({session})
+
+                // Crear la entrada de stock para el producto
+                const new_stock = new Stock({
+                    product:product._id,
+                    quantity:products[i].stock
+                })
+                await new_stock.save({session})
+            }
+
+            // Confirmar la transacción
+            await session.commitTransaction()
+            console.log('Products, prices, and stock created successfully')
+        } catch (error){
+            await session.abortTransaction()
+            console.log('Error creating products, prices, and stock:', error)
+        } finally {
+            session.endSession()
+        }
     } catch(error){
         console.log('Error creating products:', error)
     } 

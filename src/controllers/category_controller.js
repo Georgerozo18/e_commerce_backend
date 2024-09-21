@@ -54,44 +54,7 @@ const create_category = async (request, response)=>{
     }
 }
 
-const full_update_category = async(request, response)=>{
-    const { name, description } = request.body
-
-    // Validar que los campos requeridos estén presentes
-    if (!name || !description) {
-        return response.status(400).json({
-            message: 'Name and description are required'
-        })
-    }
-
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to update categories'
-        })
-    }
-
-    try{
-        const updated_category = await Category.findByIdAndUpdate(
-            request.params.id,
-            {name, description}, 
-            {new:true, runValidators:true}
-        )
-        if(!updated_category){
-            return response.status(404).json({
-                message: 'Category not found'
-            })
-        }
-
-        response.status(200).json(updated_category)
-    }catch(error){
-        response.status(500).json({
-            message:'Server error',
-        })
-    }
-}
-
-const partial_update_category = async(request, response)=>{
+const update_category = async(request, response)=>{
     const { name, description } = request.body
 
     // Verificar si el usuario es un administrador
@@ -162,7 +125,6 @@ module.exports = {
     get_category_by_id, 
     get_all_categories,
     create_category,
-    full_update_category,
-    partial_update_category,
+    update_category,
     delete_category
 }

@@ -1,4 +1,7 @@
+const mongoose = require('mongoose')
 const Product = require('../models/product_model')
+const Stock = require('../models/stock_model')
+const Price = require('../models/price_model')
 
 // Obtener un producto por ID
 const get_product_by_id = async (request, response)=>{
@@ -24,7 +27,7 @@ const get_all_products = async (request, response)=>{
 
 // Crear un nuevo producto
 const create_product = async (request, response)=>{
-    const { name, price, description, category, stock } = request.body
+    const { name, description, category, price, stock } = request.body
 
      // Verificar si el usuario es un administrador
     if(request.user.role !== 'admin'){
@@ -33,84 +36,60 @@ const create_product = async (request, response)=>{
         })
     }
 
-    if (typeof stock !== 'number') {
+    // Validar que los campos requeridos estén presentes
+    if(!name || !description || !category || price === undefined || stock === undefined){
         return response.status(400).json({
-            message: 'Stock must be a number'
+            message: 'All fields are required: name, description, category, price, stock'
         })
     }
 
-    // Validar que los campos requeridos estén presentes
-    if(!name || !price || !description || !category || !stock){
-        return response.status(400).json({
-            message: 'All fields are required'
-        })
-    }
+    // Iniciar una sesión para manejar la transacción
+    const session = await mongoose.startSession()
+    session.startTransaction()
 
     try{
         const new_product = new Product({
             name, 
-            price,
             description, 
             category, 
-            stock
         })
-        await new_product.save()
-        response.status(201).json(new_product)
+        await new_product.save({session})
+
+        // Crear la entrada de stock asociada al producto
+        const new_stock = new Stock({
+            product:new_product._id,
+            quantity:stock
+        })
+        await new_stock.save({session})
+
+        // Crear la entrada de precio asociada al producto
+        const new_price = new Price({
+            product:new_product._id,
+            price:price
+        })
+        await new_price.save({session})
+
+        // Confirmar la transacción
+        await session.commitTransaction()
+        session.endSession()
+
+        return response.status(201).json({
+            message:'Product created successfully',
+            product:new_product
+        })
     } catch(error){
+        await session.abortTransaction()
+        session.endSession()
         response.status(500).json({
-            message: 'Server error',
+            message: 'Error creating product',
             error: error.message
         })
     }
 }
 
-// Actualizar un producto completo por ID
-const full_update_product = async(request, response)=>{
-    const { name, price, description, category, stock  } = request.body
-
-    // Verificar si el usuario es un administrador
-    if(request.user.role !== 'admin'){
-        return response.status(403).json({
-            message:'Forbidden: You do not have permission to make this action'
-        })
-    }
-
-    if (typeof stock !== 'number') {
-        return response.status(400).json({
-            message: 'Stock must be a number'
-        })
-    }
-
-    // Validar que los campos requeridos estén presentes
-    if (!name || !price || !description || !category || !stock ) {
-        return response.status(400).json({
-            message: 'All fields are required'
-        })
-    }
-
-    try{
-        const updated_product = await Product.findByIdAndUpdate(
-            request.params.id,
-            { name, price, description, category },
-            {new:true, runValidators:true}
-        )
-        if(!updated_product){
-            return response.status(404).json({
-                message: 'Product not found'
-            })
-        }
-
-        response.status(200).json(updated_product)
-    }catch(error){
-        response.status(500).json({
-            message:'Server error',
-        })
-    }
-}
-
 // Actualizar un producto parcial por ID
-const partial_update_product = async(request, response)=>{
-    const { name, price, description, category, stock } = request.body
+const update_product = async(request, response)=>{
+    const { name, description, category, price, stock } = request.body
 
     // Verificar si el usuario es un administrador
     if (request.user.role !== 'admin') {
@@ -122,37 +101,63 @@ const partial_update_product = async(request, response)=>{
     // Crear un objeto de actualización solo con los campos presentes en la solicitud
     const update_fields = {}
     if(name) update_fields.name = name
-    if(price) update_fields.price = price
     if(description) update_fields.description = description
     if(category) update_fields.category = category
-    if (stock) update_fields.stock = stock
 
-    // Verificar que al menos un campo se esté actualizando
-    if(Object.keys(update_fields).length === 0){
-        return response.status(400).json({
-            message:'At least one field must be provided'
-        })
-    }
+    // Iniciar una sesión para manejar la transacción
+    const session = await mongoose.startSession()
+    session.startTransaction()
 
     try{
         const updated_product = await Product.findByIdAndUpdate(
             request.params.id,
             update_fields, 
-            {new:true, runValidators:true}
+            {new:true, session}
         )
+
         if(!updated_product){
+            await session.abortTransaction()
+            session.endSession()
             return response.status(404).json({
                 message: 'Product not found'
             })
         }
 
-        response.status(200).json(updated_product)
+        // Si se incluye el stock, actualizar la entrada de stock
+        if(stock !== undefined){
+            await Stock.findOneAndUpdate(
+                {product:update_product._id},
+                {quantity:stock},
+                {new:true, session}
+            )
+        }
+
+        // Si se incluye el precio, actualizar la entrada de precio
+        if(price !== undefined){
+            await Price.findOneAndUpdate(
+                {product:update_product._id},
+                {price:price},
+                {new:true, session}
+            )
+        }
+
+        await session.commitTransaction()
+        session.endSession()
+
+        return response.status(200).json({
+            message:'Product updated successfully',
+            product:updated_product
+        })
     }catch(error){
+        await session.abortTransaction()
+        session.endSession()
         response.status(500).json({
-            message:'Server error'
+            message: 'Error updating product',
+            error: error.message
         })
     }
 }
+
 // Eliminar un producto por ID
 const delete_product = async(request, response)=>{
     // Verificar si el usuario es un administrador
@@ -162,21 +167,40 @@ const delete_product = async(request, response)=>{
         })
     }
 
+    // Iniciar una sesión para manejar la transacción
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
     try {
-        const deleted_product = await Product.findByIdAndDelete(request.params.id)
+        const deleted_product = await Product.findByIdAndDelete(request.params.id, {session})
 
         if(!deleted_product){
+            await session.abortTransaction()
+            session.endSession()
             return response.status(404).json({
                 message:'Product not found'
             })
         }
 
-        response.status(200).json({
-            message:'Product deleted successfully',
-            product: deleted_product
+        // Eliminar el stock asociado al producto
+        await Stock.findOneAndDelete({ product:delete_product._id}, {session})
+
+        // Eliminar el precio asociado al producto
+        await Price.findOneAndDelete({product:delete_product._id}, {session})
+
+        await session.commitTransaction()
+        session.endSession()
+
+        return response.status(200).json({
+            message:'Product, stock, and price deleted successfully',
         })
     } catch (error) {
-        response.status(500).json({ message: 'Server error' })
+        await session.abortTransaction()
+        session.endSession()
+        response.status(500).json({ 
+            message: 'Server error',
+            error: error.message
+        })
     }
 }
 
@@ -184,7 +208,6 @@ module.exports = {
     get_product_by_id, 
     get_all_products,
     create_product,
-    full_update_product,
-    partial_update_product,
+    update_product,
     delete_product
 }
