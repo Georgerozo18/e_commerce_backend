@@ -3,6 +3,7 @@ const Product = require('../models/product_model')
 const Sale = require('../models/sale_model')
 const Price = require('../models/price_model')
 const {validateProducts} = require('../validators/product_validation')
+const { updateStock } = require('./stock_controller')
 
 // Obtener una venta por ID
 const get_sale_by_id = async (request, response) => {
@@ -49,7 +50,8 @@ const create_sale = async (request, response) => {
 
         let totalAmount = 0
 
-        const productDetails = await Promise.allSettled(validatedProducts.map(async (item) => {
+        const productDetails = await Promise.all(validatedProducts.map(async (item) => {
+            await updateStock(item.product, item.quantity, session)
             const product = await Product.findById(item.product).session(session)
             if (!product) throw new Error(`Product with ID ${item.product} not found`)
 
