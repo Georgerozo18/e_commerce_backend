@@ -31,13 +31,6 @@ const create_category = async (request, response)=>{
         })
     }
 
-     // Verificar si el usuario es un administrador
-    if(request.user.role !== 'admin'){
-        return response.status(403).json({
-            message:'Forbidden: You do not have permission to create categories'
-        })
-    }
-
     try{
         const new_category = new Category({name, description})
         await new_category.save()
@@ -56,13 +49,6 @@ const create_category = async (request, response)=>{
 
 const update_category = async(request, response)=>{
     const { name, description } = request.body
-
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to update categories'
-        })
-    }
 
     // Crear un objeto de actualización solo con los campos presentes en la solicitud
     const update_fields = {}
@@ -97,13 +83,6 @@ const update_category = async(request, response)=>{
 }
 
 const delete_category = async(request, response)=>{
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to delete categories'
-        })
-    }
-
     try {
         const deleted_category = await Category.findByIdAndDelete(request.params.id)
 

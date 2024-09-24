@@ -29,13 +29,6 @@ const get_all_products = async (request, response)=>{
 const create_product = async (request, response)=>{
     const { name, description, category, price, stock } = request.body
 
-     // Verificar si el usuario es un administrador
-    if(request.user.role !== 'admin'){
-        return response.status(403).json({
-            message:'Forbidden: You do not have permission to make this action'
-        })
-    }
-
     // Validar que los campos requeridos estén presentes
     if(!name || !description || !category || price === undefined || stock === undefined){
         return response.status(400).json({
@@ -90,13 +83,6 @@ const create_product = async (request, response)=>{
 // Actualizar un producto parcial por ID
 const update_product = async(request, response)=>{
     const { name, description, category, price, stock } = request.body
-
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to make this action'
-        })
-    }
 
     // Crear un objeto de actualización solo con los campos presentes en la solicitud
     const update_fields = {}
@@ -160,13 +146,6 @@ const update_product = async(request, response)=>{
 
 // Eliminar un producto por ID
 const delete_product = async(request, response)=>{
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to make this action'
-        })
-    }
-
     // Iniciar una sesión para manejar la transacción
     const session = await mongoose.startSession()
     session.startTransaction()
