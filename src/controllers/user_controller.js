@@ -2,13 +2,6 @@ const bcrypt = require('bcrypt')
 const User = require('../models/user_model')
 
 const get_user_by_id = async (request, response)=>{
-     // Verificar si el usuario es un administrador
-    if(request.user.role !== 'admin'){
-        return response.status(403).json({
-            message:'Forbidden: You do not have permission to view this information'
-        })
-    }
-
     try{
         const user = await User.findById(request.params.id)
         if(!user) return response.status(404).json({message:'user not found'})
@@ -20,13 +13,6 @@ const get_user_by_id = async (request, response)=>{
 }
 
 const get_all_users = async (request, response)=>{
-     // Verificar si el usuario es un administrador
-    if(request.user.role !== 'admin'){
-        return response.status(403).json({
-            message:'Forbidden: You do not have permission to view this information'
-        })
-    }
-
     try{
         const users = await User.find()
 
@@ -43,13 +29,6 @@ const create_user = async (request, response)=>{
     if(!username || !password || !fullname || !status || !role){
         return response.status(400).json({
             messsage: 'username, password, fullname, status, and role are required'
-        })
-    }
-
-     // Verificar si el usuario es un administrador
-    if(request.user.role !== 'admin'){
-        return response.status(403).json({
-            message:'Forbidden: You do not have permission to make this action'
         })
     }
 
@@ -78,13 +57,6 @@ const create_user = async (request, response)=>{
 
 const update_user = async(request, response)=>{
     const { username, password, fullname, status, role } = request.body
-
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to make this action'
-        })
-    }
 
     // Crear un objeto de actualización solo con los campos presentes en la solicitud
     const update_fields = {}
@@ -122,13 +94,6 @@ const update_user = async(request, response)=>{
 }
 
 const delete_user = async(request, response)=>{
-    // Verificar si el usuario es un administrador
-    if (request.user.role !== 'admin') {
-        return response.status(403).json({
-            message: 'Forbidden: You do not have permission to make this action'
-        })
-    }
-
     try {
         const deleted_user = await User.findByIdAndDelete(request.params.id)
 

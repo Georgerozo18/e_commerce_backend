@@ -4,3 +4,5 @@ const check_admin = (request, response, next) => {
     }
     next()
 }
+
+module.exports = check_admin
