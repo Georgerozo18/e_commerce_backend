@@ -1,6 +1,8 @@
 const mongoose = require('mongoose')
-const Sale = require('../models/sale_model')
 const Product = require('../models/product_model')
+const Sale = require('../models/sale_model')
+const Price = require('../models/price_model')
+const {validateProducts} = require('../validators/product_validation')
 
 // Obtener una venta por ID
 const get_sale_by_id = async (request, response) => {
@@ -26,58 +28,83 @@ const get_all_sales = async (request, response) => {
 
 // Crear una nueva venta
 const create_sale = async (request, response) => {
-    const { customer, products } = request.body
+    console.log('Request User:', request.user)
 
-    // Validar campos requeridos
-    if (!customer || !products || !Array.isArray(products) || products.length === 0) {
-        return response.status(400).json({
-            message: 'All fields are required: customer and products',
+    if (!request.user || !request.user.id) {
+        return response.status(401).json({
+            message: 'Unauthorized, customer information not found'
         })
     }
 
-    // Iniciar sesión para manejar la transacción
-    const session = await mongoose.startSession()
-    session.startTransaction()
+    const customer = request.user.id
+    const { products } = request.body
+    let session
 
     try {
+        // Validar productos
+        const validatedProducts = validateProducts(products)
+        
+        session = await mongoose.startSession()
+        session.startTransaction()
+
         let totalAmount = 0
 
-        // Calcular el total de la venta y verificar productos
-        const productDetails = await Promise.all(products.map(async (item) => {
+        const productDetails = await Promise.allSettled(validatedProducts.map(async (item) => {
             const product = await Product.findById(item.product).session(session)
             if (!product) throw new Error(`Product with ID ${item.product} not found`)
-            totalAmount += product.price * item.quantity
+
+            const priceData = await Price.findOne({ product: product._id }).session(session)
+            if (!priceData || priceData.price == null) {
+                throw new Error(`Product with ID ${product._id} has no price`)
+            }
+
+            const quantity = parseInt(item.quantity)
+            if (isNaN(quantity) || quantity <= 0) {
+                throw new Error(`Invalid quantity for product with ID ${item.product}`)
+            }
+
+            const price = parseFloat(priceData.price)
+            if (isNaN(price) || price < 0) {
+                throw new Error(`Price for product with ID ${product._id} is invalid`)
+            }
+
+            totalAmount += price * quantity
+
             return {
                 product: product._id,
-                quantity: item.quantity,
-                price: product.price,
+                quantity: quantity,
+                price: price,
             }
         }))
+
+        productDetails.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                throw new Error(`Error processing product ID ${validatedProducts[index].product}: ${result.reason.message}`)
+            }
+        })
 
         // Crear la nueva venta
         const new_sale = new Sale({
             customer,
-            products: productDetails,
-            totalAmount,
+            products: productDetails.filter(result => result.status === 'fulfilled').map(res => res.value),
+            total_amount: totalAmount,
         })
 
         await new_sale.save({ session })
-
-        // Confirmar la transacción
         await session.commitTransaction()
-        session.endSession()
 
         response.status(201).json({
             message: 'Sale created successfully',
             sale: new_sale,
-        })
+        });
     } catch (error) {
-        await session.abortTransaction()
-        session.endSession()
+        if (session) await session.abortTransaction()
         response.status(500).json({
             message: 'Error creating sale',
             error: error.message,
-        })
+        });
+    } finally {
+        if (session) session.endSession()
     }
 }
 
@@ -111,12 +138,12 @@ const update_sale = async (request, response) => {
         if (status) sale.status = status
 
         if (products && Array.isArray(products) && products.length > 0) {
-            let totalAmount = 0
+            let total_amount = 0
 
             const productDetails = await Promise.all(products.map(async (item) => {
                 const product = await Product.findById(item.product).session(session)
                 if (!product) throw new Error(`Product with ID ${item.product} not found`)
-                totalAmount += product.price * item.quantity
+                total_amount += product.price * item.quantity
                 return {
                     product: product._id,
                     quantity: item.quantity,
@@ -125,7 +152,7 @@ const update_sale = async (request, response) => {
             }))
 
             sale.products = productDetails
-            sale.total_amount = totalAmount
+            sale.total_amount = total_amount
         }
 
         await sale.save({ session })

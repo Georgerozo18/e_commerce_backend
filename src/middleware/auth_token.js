@@ -4,6 +4,7 @@ const refresh_token_controller = require('./refresh_token')
 const authenticate_token = async(request, response, next)=>{
     // Obtener el token desde las cookies
     const token = request.cookies['accessToken']
+    console.log('Token:', token)
 
      // Verificar si el token existe
     if(!token){
@@ -16,6 +17,7 @@ const authenticate_token = async(request, response, next)=>{
         // Verificar el token con jwt
         const user = await jwt.verify(token, process.env.JWT_SECRET)
         request.user = user
+        console.log('User:', request.user)
         next()
 
     } catch(error){
