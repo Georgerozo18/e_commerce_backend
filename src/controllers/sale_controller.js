@@ -57,7 +57,7 @@ const create_sale = async (request, response) => {
 
         let totalAmount = 0
 
-        const productDetails = await Promise.all(validatedProducts.map(async (item) => {
+        const productDetails = await Promise.allSettled(validatedProducts.map(async (item) => {
             await updateStock(item.product, item.quantity, session)
             const product = await Product.findById(item.product).session(session)
             if (!product) throw new Error(`Product with ID ${item.product} not found`)

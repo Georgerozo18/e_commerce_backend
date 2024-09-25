@@ -8,6 +8,7 @@ const category_routes = require('./routes/categories_routes')
 const user_routes = require('./routes/users_routes')
 const product_routes = require('./routes/products_routes')
 const sale_routes = require('./routes/sales_routes')
+const checkout_routes = require('./routes/checkout_routes')
 
 const app = express()
 
@@ -22,5 +23,6 @@ app.use('/api/v1/categories', category_routes)
 app.use('/api/v1/products', product_routes)
 app.use('/api/v1/users', user_routes)
 app.use('/api/v1/sales', sale_routes)
+app.use('/api/v1/checkout', checkout_routes)
 
 module.exports = app
