@@ -29,7 +29,7 @@ const get_all_sales = async (request, response) => {
 
 // Crear una nueva venta
 const create_sale = async (request, response) => {
-    console.log('Request User:', request.user)
+    // console.log('Request User:', request.user)
 
     if (!request.user || !request.user.id) {
         return response.status(401).json({
@@ -42,15 +42,22 @@ const create_sale = async (request, response) => {
     let session
 
     try {
+        // Iniciar la sesión si no existe
+        if (!session) {
+            session = await mongoose.startSession()
+        }
+
+        // Iniciar la transacción solo si no está en curso una
+        if (!session.inTransaction()) {
+            session.startTransaction()
+        }
+
         // Validar productos
         const validatedProducts = validateProducts(products)
-        
-        session = await mongoose.startSession()
-        session.startTransaction()
 
         let totalAmount = 0
 
-        const productDetails = await Promise.all(validatedProducts.map(async (item) => {
+        const productDetails = await Promise.allSettled(validatedProducts.map(async (item) => {
             await updateStock(item.product, item.quantity, session)
             const product = await Product.findById(item.product).session(session)
             if (!product) throw new Error(`Product with ID ${item.product} not found`)
@@ -100,7 +107,10 @@ const create_sale = async (request, response) => {
             sale: new_sale,
         });
     } catch (error) {
-        if (session) await session.abortTransaction()
+        if (session && session.inTransaction()){
+            // Asegurarse de abortar la transacción si algo falla
+            await session.abortTransaction()
+        }
         response.status(500).json({
             message: 'Error creating sale',
             error: error.message,

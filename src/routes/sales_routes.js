@@ -14,7 +14,7 @@ const router = express.Router()
 // Protected private routes
 router.get('/', authenticate_token, check_admin, get_all_sales)
 router.get('/:id', authenticate_token, check_admin, get_sale_by_id)
-router.post('/', authenticate_token, create_sale)
+router.post('/', authenticate_token, check_admin, create_sale)
 router.patch('/:id', authenticate_token, check_admin, update_sale)
 router.delete('/:id', authenticate_token, check_admin, delete_sale)
 

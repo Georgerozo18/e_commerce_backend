@@ -1,22 +1,15 @@
-# How to generate random JWT secret key
+# Proyecto final Bootcamp Talento Tech: Desarrollo Web Full Stack
+## _eCommerce Backend_
 
-To generate a random JWT secret key, you can use a tool like Node
-js to create a random string. Here's a simple example:
+![GitHub Repo stars](https://img.shields.io/github/stars/georgerozo18/e_commerce_backend.svg) ![](https://img.shields.io/github/forks/georgerozo18/e_commerce_backend.svg) ![Express](https://img.shields.io/badge/Express-4.21.0-brightgreen) 
 
-1. Open your terminal or command prompt.
-2. Run the following Node.js script to generate a random string:
+## Instalación
+Este proyecto requiere [Node.js](https://nodejs.org/) v20+ para funcionar.
 
-```
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
+Instala las dependencias y devDependencies e inicia el servidor.
 
-This command uses the **crypto** module in Node.js to generate a
-random sequence of 32 bytes and then converts it to a hexadecimal
-string.
-
-1. Copy the generated string.
-2. Open your **.env** file and set the JWT secret key:
-
-```
-JWT_SECRET=paste-the-generated-string-here
+```sh
+cd e_commerce_backend
+npm install
+npm run dev
 ```
