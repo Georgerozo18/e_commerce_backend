@@ -17,7 +17,6 @@ const authenticate_token = async(request, response, next)=>{
         // Verificar el token con jwt
         const user = await jwt.verify(token, process.env.JWT_SECRET)
         request.user = user
-        console.log('User:', request.user)
         next()
 
     } catch(error){

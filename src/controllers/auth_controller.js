@@ -53,7 +53,14 @@ const login_controller = async (request, response) => {
             secure: process.env.NODE_ENV === 'production'
         })
         
-        response.status(200).json({ message: 'Successful login' })
+        response.status(200).json({ 
+            message: 'Successful login',
+            user: {
+                username: user.username,
+                fullname: user.fullname,
+                role: user.role
+            } 
+        })
 
     } catch (error) {
         console.error(error)
@@ -91,4 +98,37 @@ const signup_controller = async (request, response) => {
     }
 }
 
-module.exports = { login_controller, signup_controller}
+const validate_session_controller = async (request, response) => {
+    // Obtener el accessToken desde las cookies
+    const token = request.cookies['accessToken']
+
+    if (!token) {
+        return response.status(401).json({ message: 'Access token missing' })
+    }
+
+    try {
+        const user = jwt.verify(token, process.env.JWT_SECRET)
+        // Devolver los datos del usuario si el token es válido
+        response.status(200).json({
+            username: user.username,
+            fullname: user.fullname,
+            role: user.role
+        })
+    } catch (error) {
+        return response.status(403).json({ message: 'Invalid access token' })
+    }
+}
+
+const logout_controller = async(request, response) => {
+    // Limpiar las cookies
+    response.clearCookie('accessToken')
+    response.clearCookie('refreshToken')
+    return response.status(200).json({ message: 'Logged out' })
+}
+
+module.exports = { 
+    login_controller, 
+    signup_controller, 
+    validate_session_controller,
+    logout_controller
+}
