@@ -9,7 +9,7 @@ const router = express.Router()
 
 router.get('/validate', validate_session_controller)
 router.post('/login', login_controller)
-router.get('/logout', logout_controller)
+router.post('/logout', logout_controller)
 router.post('/sign_up', signup_controller)
 
 module.exports = router
