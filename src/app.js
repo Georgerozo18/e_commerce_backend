@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
+require('dotenv').config()
 
 const auth_routes = require('./routes/auth_routes')
 const auth_admin_routes = require('./routes/auth_admin_routes')
@@ -16,7 +17,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(cors({
-    origin:'http://localhost:5173',
+    origin:process.env.FRONTEND_ORIGIN,
     credentials: true // Permitir el envío de cookies o credenciales
 }))
 
