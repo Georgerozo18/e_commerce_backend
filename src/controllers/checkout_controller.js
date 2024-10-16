@@ -7,7 +7,7 @@ const { updateStock } = require('./stock_controller')
 
 // Crear una nueva venta para el cliente
 const create_checkout = async (request, response) => {
-    console.log(request.body)
+    // console.log(request.body)
     if (!request.user || !request.user.id) {
         return response.status(401).json({
             message: 'Unauthorized, customer information not found'

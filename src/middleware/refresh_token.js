@@ -4,7 +4,7 @@ const refresh_token_controller = (request, response)=>{
     return new Promise((resolve, reject)=>{
         // Obtener el access token desde las cookies
         const refreshToken  = request.cookies['refreshToken']
-        console.log('Received refresh token:', refreshToken)
+        // console.log('Received refresh token:', refreshToken)
         
         // Verificar si el token existe
         if(!refreshToken){
@@ -51,10 +51,8 @@ const refresh_token_controller = (request, response)=>{
                 sameSite: 'strict',
                 secure: process.env.NODE_ENV === 'production'
             })
-
-            console.log('New access token issued:', new_access_token)
-            console.log('New refresh token issued:', new_refresh_token)
-            
+            // console.log('New access token issued:', new_access_token)
+            // console.log('New refresh token issued:', new_refresh_token)
             resolve(new_access_token)
         })
     })   

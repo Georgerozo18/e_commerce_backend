@@ -16,6 +16,14 @@ const ProductSchema = new mongoose.Schema({
         ref: 'Category',
         required: true
     },
+    image: {
+        type: String,
+        required: false
+    },
+    model: {
+        type: String,
+        required: false
+    },
     createdAt: {
         type: Date,
         default: Date.now

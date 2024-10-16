@@ -4,7 +4,7 @@ const refresh_token_controller = require('./refresh_token')
 const authenticate_token = async(request, response, next)=>{
     // Obtener el token desde las cookies
     const token = request.cookies['accessToken']
-    console.log('Token:', token)
+    // console.log('Token:', token)
 
      // Verificar si el token existe
     if(!token){

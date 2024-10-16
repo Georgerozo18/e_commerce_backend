@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 require('dotenv').config()
+const path = require('path')
 
 const auth_routes = require('./routes/auth_routes')
 const auth_admin_routes = require('./routes/auth_admin_routes')
@@ -20,6 +21,10 @@ app.use(cors({
     origin:process.env.FRONTEND_ORIGIN,
     credentials: true // Permitir el envío de cookies o credenciales
 }))
+
+const uploadsDir = path.join(__dirname, '../uploads')
+console.log("Uploads Directory:", uploadsDir)
+app.use('/uploads', express.static(uploadsDir))
 
 app.use('/api/v1/auth', auth_routes)
 app.use('/api/v1/auth_admin', auth_admin_routes)

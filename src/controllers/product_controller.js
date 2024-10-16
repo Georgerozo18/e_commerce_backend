@@ -18,8 +18,22 @@ const get_product_by_id = async (request, response)=>{
 // Obtener todos los productos
 const get_all_products = async (request, response)=>{
     try{
-        const products = await Product.find().populate('category')
-        response.status(200).json(products)
+        const products = await Product.find()
+            .populate('category')
+            .lean()
+
+        // Obtener información adicional de Stock y Price
+        const enriche_products = await Promise.all(products.map(async (product) => {
+            const stock = await Stock.findOne({ product: product._id })
+            const price = await Price.findOne({ product: product._id })
+            
+            return {
+                ...product,
+                stock: stock ? stock.quantity : null, 
+                price: price ? price.price : null,
+            }
+        }))
+        response.status(200).json(enriche_products)
     } catch(error){
         response.status(500).json({message: 'Server error'})
     }
@@ -27,6 +41,7 @@ const get_all_products = async (request, response)=>{
 
 // Crear un nuevo producto
 const create_product = async (request, response)=>{
+    console.log(request.body)
     const { name, description, category, price, stock } = request.body
 
     // Validar que los campos requeridos estén presentes
@@ -44,7 +59,7 @@ const create_product = async (request, response)=>{
         const new_product = new Product({
             name, 
             description, 
-            category, 
+            category
         })
         await new_product.save({session})
 
@@ -77,6 +92,66 @@ const create_product = async (request, response)=>{
             message: 'Error creating product',
             error: error.message
         })
+    }
+}
+
+const upload_product_image = async (request, response) => {
+    const product_id = request.params.id;
+    const image = request.file ? request.file.filename : null;
+
+    if (!image) {
+        return response.status(400).json({ message: 'No image file uploaded' });
+    }
+
+    try {
+        const imageUrl = `http://localhost:3001/uploads/${image}`; // Construir URL completa
+
+        const updated_product = await Product.findByIdAndUpdate(
+            product_id,
+            { image: imageUrl }, // Guardar URL en lugar del nombre del archivo
+            { new: true }
+        );
+
+        if (!updated_product) {
+            return response.status(404).json({ message: 'Product not found' });
+        }
+
+        return response.status(200).json({
+            message: 'Image uploaded successfully',
+            product: updated_product
+        });
+    } catch (error) {
+        response.status(500).json({ message: 'Error uploading image', error: error.message });
+    }
+}
+
+const upload_product_model = async (request, response) => {
+    const product_id = request.params.id;
+    const model = request.file ? request.file.filename : null;
+
+    if (!model) {
+        return response.status(400).json({ message: 'No model file uploaded' });
+    }
+
+    try {
+        const modelUrl = `http://localhost:3001/uploads/${model}`; // Construir URL completa
+
+        const updated_product = await Product.findByIdAndUpdate(
+            product_id,
+            { model: modelUrl }, // Guardar URL en lugar del nombre del archivo
+            { new: true }
+        );
+
+        if (!updated_product) {
+            return response.status(404).json({ message: 'Product not found' });
+        }
+
+        return response.status(200).json({
+            message: 'Model uploaded successfully',
+            product: updated_product
+        });
+    } catch (error) {
+        response.status(500).json({ message: 'Error uploading model', error: error.message });
     }
 }
 
@@ -188,5 +263,7 @@ module.exports = {
     get_all_products,
     create_product,
     update_product,
-    delete_product
+    delete_product,
+    upload_product_image,
+    upload_product_model
 }
