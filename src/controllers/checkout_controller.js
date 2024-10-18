@@ -3,11 +3,10 @@ const Product = require('../models/product_model')
 const Sale = require('../models/sale_model')
 const Price = require('../models/price_model')
 const { validateProducts } = require('../validators/product_validation')
-const { updateStock } = require('./stock_controller')
+const { updateStock } = require('./stock_controller') // Usa la función existente
 
 // Crear una nueva venta para el cliente
 const create_checkout = async (request, response) => {
-    // console.log(request.body)
     if (!request.user || !request.user.id) {
         return response.status(401).json({
             message: 'Unauthorized, customer information not found'
@@ -19,80 +18,97 @@ const create_checkout = async (request, response) => {
     let session
 
     try {
-        // Iniciar la sesión si no existe
-        if (!session) {
-            session = await mongoose.startSession()
-        }
-
-        // Iniciar la transacción solo si no está en curso una
-        if (!session.inTransaction()) {
-            session.startTransaction()
-        }
+        // Iniciar la sesión y la transacción
+        session = await mongoose.startSession()
+        session.startTransaction()
 
         // Validar productos
         const validatedProducts = validateProducts(products)
 
         let totalAmount = 0
 
+        // Procesar cada producto en paralelo con Promise.allSettled
         const productDetails = await Promise.allSettled(validatedProducts.map(async (item) => {
-            await updateStock(item.product, item.quantity, session)
-            const product = await Product.findById(item.product).session(session)
-            if (!product) throw new Error(`Product with ID ${item.product} not found`)
+            const productId = item.product // Guardamos el ID del producto
 
-            const priceData = await Price.findOne({ product: product._id }).session(session)
-            if (!priceData || priceData.price == null) {
-                throw new Error(`Product with ID ${product._id} has no price`)
-            }
+            try {
+                // Actualizar stock con la sesión activa
+                await updateStock(productId, item.quantity, session)
 
-            const quantity = parseInt(item.quantity)
-            if (isNaN(quantity) || quantity <= 0) {
-                throw new Error(`Invalid quantity for product with ID ${item.product}`)
-            }
+                // Buscar el producto
+                const product = await Product.findById(productId).session(session)
+                if (!product) throw new Error(`Product with ID ${productId} not found`)
 
-            const price = parseFloat(priceData.price)
-            if (isNaN(price) || price < 0) {
-                throw new Error(`Price for product with ID ${product._id} is invalid`)
-            }
+                // Buscar el precio
+                const priceData = await Price.findOne({ product: product._id }).session(session)
+                if (!priceData || priceData.price == null) {
+                    throw new Error(`Product with ID ${product._id} has no price`)
+                }
 
-            totalAmount += price * quantity
+                const quantity = parseInt(item.quantity)
+                if (isNaN(quantity) || quantity <= 0) {
+                    throw new Error(`Invalid quantity for product with ID ${productId}`)
+                }
 
-            return {
-                product: product._id,
-                quantity: quantity,
-                price: price,
+                const price = parseFloat(priceData.price)
+                if (isNaN(price) || price < 0) {
+                    throw new Error(`Price for product with ID ${product._id} is invalid`)
+                }
+
+                totalAmount += price * quantity
+
+                // Retornar detalles del producto procesado
+                return {
+                    product: product._id,
+                    quantity: quantity,
+                    price: price,
+                }
+            } catch (err) {
+                throw new Error(`Error processing product ID ${productId}: ${err.message}`)
             }
         }))
 
-        productDetails.forEach((result, index) => {
-            if (result.status === 'rejected') {
-                throw new Error(`Error processing product ID ${validatedProducts[index].product}: ${result.reason.message}`)
-            }
-        })
+        // Filtrar y manejar los resultados de Promise.allSettled
+        const fulfilledProducts = productDetails
+            .filter(result => result.status === 'fulfilled')
+            .map(result => result.value)
+
+        // Si algún producto no se procesó correctamente, lanzar error
+        if (fulfilledProducts.length !== products.length) {
+            const rejectedProducts = productDetails.filter(result => result.status === 'rejected')
+            console.error("Errores al procesar los productos:", rejectedProducts.map(result => result.reason.message))
+            throw new Error(`Some products failed during processing. Cancelling transaction. Details: ${rejectedProducts.map(result => result.reason.message).join(', ')}`)
+        }
 
         // Crear la nueva venta
         const new_sale = new Sale({
             customer,
-            products: productDetails.filter(result => result.status === 'fulfilled').map(res => res.value),
+            products: fulfilledProducts,
             total_amount: totalAmount,
         })
 
+        // Guardar la venta en la base de datos con la sesión activa
         await new_sale.save({ session })
+
+        // Confirmar la transacción
         await session.commitTransaction()
 
         response.status(201).json({
             message: 'Sale created successfully',
             sale: new_sale,
-        });
+        })
+
     } catch (error) {
-        if (session && session.inTransaction()){
-            // Asegurarse de abortar la transacción si algo falla
+        // Manejar errores y abortar la transacción si es necesario
+        if (session && session.inTransaction()) {
             await session.abortTransaction()
         }
         response.status(500).json({
             message: 'Error creating sale',
             error: error.message,
-        });
+        })
     } finally {
+        // Finalizar la sesión
         if (session) session.endSession()
     }
 }
