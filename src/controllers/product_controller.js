@@ -158,6 +158,7 @@ const upload_product_model = async (request, response) => {
 // Actualizar un producto parcial por ID
 const update_product = async(request, response)=>{
     const { name, description, category, price, stock } = request.body
+    console.log(request.body)
 
     // Crear un objeto de actualización solo con los campos presentes en la solicitud
     const update_fields = {}
@@ -187,7 +188,7 @@ const update_product = async(request, response)=>{
         // Si se incluye el stock, actualizar la entrada de stock
         if(stock !== undefined){
             await Stock.findOneAndUpdate(
-                {product:update_product._id},
+                {product:updated_product._id},
                 {quantity:stock},
                 {new:true, session}
             )
@@ -196,7 +197,7 @@ const update_product = async(request, response)=>{
         // Si se incluye el precio, actualizar la entrada de precio
         if(price !== undefined){
             await Price.findOneAndUpdate(
-                {product:update_product._id},
+                {product:updated_product._id},
                 {price:price},
                 {new:true, session}
             )
