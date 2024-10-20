@@ -26,13 +26,14 @@ const create_checkout = async (request, response) => {
         const validatedProducts = validateProducts(products)
 
         let totalAmount = 0
+        const fulfilledProducts = []
 
-        // Procesar cada producto en paralelo con Promise.allSettled
-        const productDetails = await Promise.allSettled(validatedProducts.map(async (item) => {
-            const productId = item.product // Guardamos el ID del producto
+        // Procesar productos de manera secuencial para evitar problemas de transacción
+        for (let item of validatedProducts) {
+            const productId = item.product
 
             try {
-                // Actualizar stock con la sesión activa
+                // Actualizar el stock con la sesión activa
                 await updateStock(productId, item.quantity, session)
 
                 // Buscar el producto
@@ -57,27 +58,16 @@ const create_checkout = async (request, response) => {
 
                 totalAmount += price * quantity
 
-                // Retornar detalles del producto procesado
-                return {
+                // Guardar el producto procesado
+                fulfilledProducts.push({
                     product: product._id,
                     quantity: quantity,
                     price: price,
-                }
+                })
+
             } catch (err) {
                 throw new Error(`Error processing product ID ${productId}: ${err.message}`)
             }
-        }))
-
-        // Filtrar y manejar los resultados de Promise.allSettled
-        const fulfilledProducts = productDetails
-            .filter(result => result.status === 'fulfilled')
-            .map(result => result.value)
-
-        // Si algún producto no se procesó correctamente, lanzar error
-        if (fulfilledProducts.length !== products.length) {
-            const rejectedProducts = productDetails.filter(result => result.status === 'rejected')
-            console.error("Errores al procesar los productos:", rejectedProducts.map(result => result.reason.message))
-            throw new Error(`Some products failed during processing. Cancelling transaction. Details: ${rejectedProducts.map(result => result.reason.message).join(', ')}`)
         }
 
         // Crear la nueva venta

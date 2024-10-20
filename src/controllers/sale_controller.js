@@ -105,7 +105,7 @@ const create_sale = async (request, response) => {
         response.status(201).json({
             message: 'Sale created successfully',
             sale: new_sale,
-        });
+        })
     } catch (error) {
         if (session && session.inTransaction()){
             // Asegurarse de abortar la transacción si algo falla
@@ -114,7 +114,7 @@ const create_sale = async (request, response) => {
         response.status(500).json({
             message: 'Error creating sale',
             error: error.message,
-        });
+        })
     } finally {
         if (session) session.endSession()
     }
@@ -232,11 +232,68 @@ const delete_sale = async (request, response) => {
         })
     }
 }
+// Obtener las estadísticas de las ventas
+const get_sales_stats = async (request, response) => {
+    try {
+        const sales = await Sale.find()
 
+        // Total revenue
+        const totalRevenue = sales.reduce((sum, sale) => sum + sale.total_amount, 0)
+
+        // Total sales
+        const totalSales = sales.length
+
+        // Total products sold
+        const totalProductsSold = sales.reduce((count, sale) => {
+            return count + sale.products.reduce((sum, product) => sum + product.quantity, 0)
+        }, 0)
+
+        // Best selling product
+        const productSales = {}
+        sales.forEach(sale => {
+            sale.products.forEach(product => {
+                if (!productSales[product.product]) {
+                    productSales[product.product] = 0
+                }
+                productSales[product.product] += product.quantity
+            })
+        })
+
+        const bestSellingProduct = Object.keys(productSales).reduce((a, b) => productSales[a] > productSales[b] ? a : b)
+
+        // Agrupar ventas por fecha
+        const salesByDate = sales.reduce((acc, sale) => {
+            const saleDate = new Date(sale.createdAt).toISOString().split('T')[0]  // Agrupar por día
+            if (!acc[saleDate]) {
+                acc[saleDate] = {
+                    totalRevenue: 0,
+                    totalSales: 0,
+                    totalProductsSold: 0
+                }
+            }
+            acc[saleDate].totalRevenue += sale.total_amount
+            acc[saleDate].totalSales += 1
+            acc[saleDate].totalProductsSold += sale.products.reduce((sum, product) => sum + product.quantity, 0)
+            return acc
+        }, {})
+
+        // Return statistics including sales by date
+        response.status(200).json({
+            totalRevenue,
+            totalSales,
+            totalProductsSold,
+            bestSellingProduct,
+            salesByDate // Agregamos ventas por fecha
+        })
+    } catch (error) {
+        response.status(500).json({ message: 'Error fetching stats', error: error.message })
+    }
+}
 module.exports = {
     get_sale_by_id,
     get_all_sales,
     create_sale,
     update_sale,
     delete_sale,
+    get_sales_stats,
 }
