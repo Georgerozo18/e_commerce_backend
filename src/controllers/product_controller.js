@@ -96,62 +96,72 @@ const create_product = async (request, response)=>{
 }
 
 const upload_product_image = async (request, response) => {
-    const product_id = request.params.id;
-    const image = request.file ? request.file.filename : null;
+    const product_id = request.params.id
+    const image = request.file ? request.file.filename : null
 
     if (!image) {
-        return response.status(400).json({ message: 'No image file uploaded' });
+        return response.status(400).json({ message: 'No image file uploaded' })
     }
 
     try {
-        const imageUrl = `http://localhost:3001/uploads/${image}`; // Construir URL completa
+        // Detectar si el entorno es desarrollo o producción
+        const baseUrl = process.env.NODE_ENV === 'development' 
+            ? process.env.BACKEND_URL 
+            : process.env.BACKEND_PROD_URL
+
+        const imageUrl = `${baseUrl}/uploads/${image}` // Construir URL completa
 
         const updated_product = await Product.findByIdAndUpdate(
             product_id,
             { image: imageUrl }, // Guardar URL en lugar del nombre del archivo
             { new: true }
-        );
+        )
 
         if (!updated_product) {
-            return response.status(404).json({ message: 'Product not found' });
+            return response.status(404).json({ message: 'Product not found' })
         }
 
         return response.status(200).json({
             message: 'Image uploaded successfully',
             product: updated_product
-        });
+        })
     } catch (error) {
-        response.status(500).json({ message: 'Error uploading image', error: error.message });
+        response.status(500).json({ message: 'Error uploading image', error: error.message })
     }
 }
 
 const upload_product_model = async (request, response) => {
-    const product_id = request.params.id;
-    const model = request.file ? request.file.filename : null;
+    const product_id = request.params.id
+    const model = request.file ? request.file.filename : null
 
     if (!model) {
-        return response.status(400).json({ message: 'No model file uploaded' });
+        return response.status(400).json({ message: 'No model file uploaded' })
     }
 
     try {
-        const modelUrl = `http://localhost:3001/uploads/${model}`; // Construir URL completa
+        // Detectar si el entorno es desarrollo o producción
+        const baseUrl = process.env.NODE_ENV === 'development' 
+            ? process.env.BACKEND_URL 
+            : process.env.BACKEND_PROD_URL
+
+        const modelUrl = `${baseUrl}/uploads/${model}` // Construir URL completa
 
         const updated_product = await Product.findByIdAndUpdate(
             product_id,
             { model: modelUrl }, // Guardar URL en lugar del nombre del archivo
             { new: true }
-        );
+        )
 
         if (!updated_product) {
-            return response.status(404).json({ message: 'Product not found' });
+            return response.status(404).json({ message: 'Product not found' })
         }
 
         return response.status(200).json({
             message: 'Model uploaded successfully',
             product: updated_product
-        });
+        })
     } catch (error) {
-        response.status(500).json({ message: 'Error uploading model', error: error.message });
+        response.status(500).json({ message: 'Error uploading model', error: error.message })
     }
 }
 
