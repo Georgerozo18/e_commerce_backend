@@ -277,13 +277,21 @@ const get_sales_stats = async (request, response) => {
             return acc
         }, {})
 
+        // Ordenar las ventas por fecha (convertimos el objeto en un array y lo ordenamos)
+        const sortedSalesByDate = Object.keys(salesByDate)
+            .sort((a, b) => new Date(a) - new Date(b))
+            .reduce((acc, date) => {
+                acc[date] = salesByDate[date]
+                return acc
+            }, {})
+
         // Return statistics including sales by date
         response.status(200).json({
             totalRevenue,
             totalSales,
             totalProductsSold,
             bestSellingProduct,
-            salesByDate // Agregamos ventas por fecha
+            salesByDate:sortedSalesByDate   // Agregamos ventas por fecha
         })
     } catch (error) {
         response.status(500).json({ message: 'Error fetching stats', error: error.message })
